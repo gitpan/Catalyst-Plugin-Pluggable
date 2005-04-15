@@ -1,0 +1,28 @@
+NAME
+    Catalyst::Plugin::Pluggable - Plugin for Pluggable Catalyst applications
+
+SYNOPSIS
+        # use it
+        use Catalyst qw/Pluggable/;
+
+        $c->forward_all('do_stuff');
+
+DESCRIPTION
+    Pluggable Catalyst applications.
+
+  METHODS
+   $c->forward_all($action)
+        Like C<forward>, but executes all actions with the same name in the
+        whole application.
+
+SEE ALSO
+    Catalyst::Manual, Catalyst::Test, Catalyst::Request, Catalyst::Response,
+    Catalyst::Helper
+
+AUTHOR
+    Sebastian Riedel, "sri@oook.de"
+
+LICENSE
+    This library is free software . You can redistribute it and/or modify it
+    under the same terms as perl itself.
+
