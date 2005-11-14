@@ -2,7 +2,7 @@ package Catalyst::Plugin::Pluggable;
 
 use strict;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 NAME
 
@@ -21,30 +21,43 @@ Pluggable Catalyst applications.
 
 =head2 METHODS
 
-=head3 $c->forward_all($action,[$sortref])
+=head3 $c->forward_all($action,[$argsref $sortref])
 
-    Like C<forward>, but executes all actions with the same name in the
+    Like C<forward>, but forwards to all actions with the same name in the
     whole application, ordered by class name by default.
     The optional $sortref parameter allows you to pass a code reference
     to a function that will be used in the sort function. The default
-    here is { $a->[0]->[0] cmp $b->[0]->[0] }
+    here is { $a->{class} cmp $b->{class} }
 
 =cut
 
 sub forward_all {
-    my ( $c, $action, $sort ) = @_;
-    my @results;
-    for my $uid ( keys %{ $c->actions->{private} } ) {
-        if ( my $result = $c->actions->{private}->{$uid}->{$action} ) {
-            push @results, [$result];
+    my ( $c, $name, $args, $sort ) = @_;
+    my @actions;
+    my $walker = sub {
+        my ( $walker, $parent, $prefix ) = @_;
+        $prefix .= $parent->getNodeValue || '';
+        $prefix .= '/' unless $prefix =~ /\/$/;
+        my $node = $parent->getNodeValue->actions;
+
+        for my $action ( keys %{$node} ) {
+            my $action_obj = $node->{$action};
+            next if $action_obj->{name} !~ /^$name$/;
+            push @actions, $action_obj;
         }
+
+        $walker->( $walker, $_, $prefix ) for $parent->getAllChildren;
+    };
+    $walker->( $walker, $c->dispatcher->tree, '' );
+    if ( ref $args eq 'CODE' ) {
+        $sort = $args;
+        $args = undef;
     }
-    $sort ||= sub { $a->[0]->[0] cmp $b->[0]->[0] };
-    @results = sort $sort @results if @results;
-    for my $result ( @results ) {
-        $c->execute( @{ $result->[0] } );
-        return if scalar @{ $c->error };
-        last unless $c->state;
+    $sort ||= sub { $a->{class} cmp $b->{class} };
+    @actions = sort $sort @actions if @actions;
+    for my $action (@actions) {
+        my $reverse = $action->{reverse};
+        $c->forward( "/$reverse", $args );
     }
     return $c->state;
 }
@@ -60,8 +73,8 @@ Sebastian Riedel, C<sri@oook.de>
 
 =head1 LICENSE
 
-This library is free software . You can redistribute it and/or modify it under
-the same terms as perl itself.
+This library is free software, you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 

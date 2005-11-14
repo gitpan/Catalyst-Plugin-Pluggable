@@ -1,5 +1,8 @@
 Revision history for Perl extension Catalyst::Plugin::Pluggable
 
+0.03  Fri Nov 14 00:00:00 2005
+        - Updated for Catalyst 5.5
+
 0.02  Fri Apr 15 15:00:00 2005
         - Added support for custom sort functions
         - Added pod tests
