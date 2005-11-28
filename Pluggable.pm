@@ -2,7 +2,7 @@ package Catalyst::Plugin::Pluggable;
 
 use strict;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 NAME
 
@@ -13,7 +13,9 @@ Catalyst::Plugin::Pluggable - Plugin for Pluggable Catalyst applications
     # use it
     use Catalyst qw/Pluggable/;
 
-    $c->forward_all('do_stuff');
+    $c->forward_all('test');
+    $c->forward_all( 'test', [ 'foo', 'bar' ], '$b->{class} cmp $a->{class}' );
+    $c->forward_all( 'test', '$b->{class} cmp $a->{class}' );
 
 =head1 DESCRIPTION
 
@@ -21,7 +23,7 @@ Pluggable Catalyst applications.
 
 =head2 METHODS
 
-=head3 $c->forward_all($action,[$argsref $sortref])
+=head3 $c->forward_all($action,[$argsref $sort])
 
     Like C<forward>, but forwards to all actions with the same name in the
     whole application, ordered by class name by default.
@@ -49,12 +51,14 @@ sub forward_all {
         $walker->( $walker, $_, $prefix ) for $parent->getAllChildren;
     };
     $walker->( $walker, $c->dispatcher->tree, '' );
-    if ( ref $args eq 'CODE' ) {
+    if ( ($args) && ( ref $args ne 'ARRAY' ) ) {
         $sort = $args;
         $args = undef;
     }
-    $sort ||= sub { $a->{class} cmp $b->{class} };
-    @actions = sort $sort @actions if @actions;
+    my $code;
+    eval "\$code = sub { $sort }" if $sort;
+    $code ||= sub { $a->{class} cmp $b->{class} };
+    @actions = sort $code @actions if @actions;
     for my $action (@actions) {
         my $reverse = $action->{reverse};
         $c->forward( "/$reverse", $args );
